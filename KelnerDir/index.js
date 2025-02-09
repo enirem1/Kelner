@@ -40,7 +40,8 @@ app.get("/article", (req, res) => {
   });
 });
 app.get("/article/:id", (req, res) => {
-    db.query("SELECT * FROM article", (err, result) => {
+  const userId=req.params.id
+    db.query("SELECT * FROM article WHERE id=?",[userId], (err, result) => {
       if (err) {
         res.status(500).json({ error: err.message });
       } else {
