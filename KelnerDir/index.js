@@ -13,8 +13,9 @@ http://localhost:5000/ac          --select article and category
 http://localhost:5000/ac/a/1    --select category and article by article id  
 http://localhost:5000/ac/c/1   --select category and article by category id  
 http://localhost:5000/ac/cp/1   --select category and article by category paernt_id  
-http://localhost:5000/article/    --select all
-http://localhost:5000/article/1   --select by id
+http://localhost:5000/a/    --select all
+http://localhost:5000/a/1   --select by id
+http://localhost:5000/a/ia/1   --select by id
 http://localhost:5000/category/1
 
 */
@@ -40,7 +41,7 @@ app.get("/", (req, res) => {
 });
 
 // Get all users
-app.get("/article", (req, res) => {
+app.get("/a", (req, res) => {
   db.query("SELECT * FROM article", (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -49,6 +50,8 @@ app.get("/article", (req, res) => {
     }
   });
 });
+
+
 app.get("/article/:id", (req, res) => {
   const userId=req.params.id
     db.query("SELECT * FROM article WHERE id=?",[userId], (err, result) => {
@@ -110,23 +113,30 @@ app.get("/ac/a/:id", (req, res) => {
           });
         });
     
-  
+      app.get("/a/ia/:id", (req, res) => {
+        const cpId=req.params.id;
+          db.query(`
+          SELECT 
+          a.name AS article, 
+          i.name AS ingredient, 
+          al.name AS allergy
+          FROM article AS a
+          JOIN article_ingredient ai ON a.id = ai.id_article
+          JOIN ingredients i ON i.id = ai.id_ingredient
+          JOIN ingredients_allergies ia ON i.id = ia.id_ingredient
+          JOIN allergies al ON al.id = ia.id_allergie
+          where a.id=?`,[cpId], (err, result) => {
+            if (err) {
+              res.status(500).json({ error: err.message });
+            } else {
+              res.json(result);
+            }
+          });
+        });
+    
+      
 
   // Add a new user
-app.post("/article", (req, res) => {
-  const { name, price } = req.body;
-  db.query(
-    "INSERT INTO users (name, price ) VALUES (?, ?)",
-    [name, price],
-    (err, result) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json({ message: "Article added!", userId: result.insertId });
-      }
-    }
-  );
-});
 
 // Start Server
 const PORT = process.env.PORT || 5000;
