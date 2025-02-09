@@ -7,7 +7,17 @@ const cors = require("cors");
 const app = express();
 app.use(express.json());
 app.use(cors());
+/*
+http://localhost:5000/
+http://localhost:5000/ac          --select article and category 
+http://localhost:5000/ac/a/1    --select category and article by article id  
+http://localhost:5000/ac/c/1   --select category and article by category id  
+http://localhost:5000/ac/cp/1   --select category and article by category paernt_id  
+http://localhost:5000/article/    --select all
+http://localhost:5000/article/1   --select by id
+http://localhost:5000/category/1
 
+*/
 // MySQL Database Connection
 const db = mysql.createConnection({
   host: "localhost",
@@ -49,7 +59,60 @@ app.get("/article/:id", (req, res) => {
       }
     });
   });
-// Add a new user
+app.get("/category/:id", (req, res) => {
+  const userId=req.params.id
+    db.query("SELECT * FROM category WHERE id=?",[userId], (err, result) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+      } else {
+        res.json(result);
+      }
+    });
+  });
+  app.get("/ac/", (req, res) => {
+    
+      db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id ", (err, result) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+        } else {
+          res.json(result);
+        }
+      });
+    });
+app.get("/ac/a/:id", (req, res) => {
+    const aId=req.params.id;
+      db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE article.id=?",[aId], (err, result) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+        } else {
+          res.json(result);
+        }
+      });
+    });
+    app.get("/ac/c/:id", (req, res) => {
+      const aId=req.params.id;
+        db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE category.id=?",[aId], (err, result) => {
+          if (err) {
+            res.status(500).json({ error: err.message });
+          } else {
+            res.json(result);
+          }
+        });
+      });
+      app.get("/ac/cp/:id", (req, res) => {
+        const cpId=req.params.id;
+          db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE category.parent_id=?",[cpId], (err, result) => {
+            if (err) {
+              res.status(500).json({ error: err.message });
+            } else {
+              res.json(result);
+            }
+          });
+        });
+    
+  
+
+  // Add a new user
 app.post("/article", (req, res) => {
   const { name, price } = req.body;
   db.query(
