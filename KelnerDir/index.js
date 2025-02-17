@@ -26,7 +26,7 @@ const db = mysql.createConnection({
   password: "", // Default WAMP has no password
   database: "Kelner",
 });
-
+//huinq
 db.connect((err) => {
   if (err) {
     console.error("Database connection failed: ", err);
