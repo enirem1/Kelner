@@ -7,9 +7,10 @@
     Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
     The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
-
+#include "WiFi.h"
 #include <SPI.h>
-
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 /*  Install the "TFT_eSPI" library by Bodmer to interface with the TFT Display - https://github.com/Bodmer/TFT_eSPI
     *** IMPORTANT: User_Setup.h available on the internet will probably NOT work with the examples available at Random Nerd Tutorials ***
     *** YOU MUST USE THE User_Setup.h FILE PROVIDED IN THE LINK BELOW IN ORDER TO USE THE EXAMPLES FROM RANDOM NERD TUTORIALS ***
@@ -21,7 +22,11 @@
 #include <XPT2046_Touchscreen.h>
 
 TFT_eSPI tft = TFT_eSPI();
-
+struct Dish {
+    String name;
+    String category;
+    
+};
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
@@ -35,10 +40,48 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 #define FONT_SIZE 2
-
+const char* ssid = "enirem";
+const char* password = "12345678";
 // Touchscreen coordinates: (x, y) and pressure (z)
 int x, y, z;
+void fetchJson() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+     char* serverUrl = "http://192.168.47.250:5000/ac/a/1";
+    http.begin(serverUrl);
+    int httpResponseCode = http.GET();
 
+    if (httpResponseCode > 0) {
+      String payload = http.getString();
+      Serial.println("Response:");
+      Serial.println(payload);
+
+      // Parse JSON
+      StaticJsonDocument<200> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (!error) {
+        const char* article = doc[0]["article"];
+        const char* category = doc[0]["category"];
+
+        Serial.print("Article: ");
+        Serial.println(article);
+        Serial.print("Category: ");
+        Serial.println(category);
+      } else {
+        Serial.print("JSON Parsing failed: ");
+        Serial.println(error.c_str());
+      }
+    } else {
+      Serial.print("HTTP Request failed, error: ");
+      Serial.println(httpResponseCode);
+    }
+    
+    http.end();
+  } else {
+    Serial.println("WiFi not connected.");
+  }
+}
 // Print Touchscreen info about X, Y and Pressure (Z) on the Serial Monitor
 void printTouchToSerial(int touchX, int touchY, int touchZ) {
   Serial.print("X = ");
@@ -70,10 +113,21 @@ void printTouchToDisplay(int touchX, int touchY, int touchZ) {
   tempText = "Pressure = " + String(touchZ);
   tft.drawCentreString(tempText, centerX, textY, FONT_SIZE);
 }
+void initWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print('.');
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP());
+}
 
 void setup() {
   Serial.begin(115200);
 
+    initWiFi();
   // Start the SPI for the touchscreen and init the touchscreen
   touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
   touchscreen.begin(touchscreenSPI);
@@ -93,7 +147,7 @@ void setup() {
   // Set X and Y coordinates for center of display
   int centerX = SCREEN_WIDTH / 2;
   int centerY = SCREEN_HEIGHT / 2;
-
+  fetchJson();
   tft.drawCentreString("Hello, world!", centerX, 30, FONT_SIZE);
   tft.drawCentreString("Touch screen to test", centerX, centerY, FONT_SIZE);
 }
