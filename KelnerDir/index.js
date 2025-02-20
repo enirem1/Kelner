@@ -9,21 +9,21 @@ app.use(express.json());
 app.use(cors());
 /*
 http://localhost:8080/
-http://localhost:5000/ac          --select article and category 
+http://localhost:5000/ac        --select article and category 
 http://localhost:5000/ac/a/1    --select category and article by article id  
-http://localhost:5000/ac/c/1   --select category and article by category id  
+http://localhost:5000/ac/c/1    --select category and article by category id  
 http://localhost:5000/ac/cp/1   --select category and article by category paernt_id  
-http://localhost:5000/a/    --select all
-http://localhost:5000/a/1   --select by id
-http://localhost:5000/a/ia/1   --select by id
-http://localhost:5000/category/1
+http://localhost:5000/articles/        --select all
+http://localhost:5000/article/1       --select by id
+http://localhost:5000/article/ingredients/1    --select by id
+http://localhost:5000/category/article/1
 
 */
 // MySQL Database Connection
 const db = mysql.createConnection({
   host: "localhost",
-  user: "root", // Default MySQL username
-  password: "", // Default WAMP has no password
+  user: "root", 
+  password: "", 
   database: "Kelner",
 });
 //huinq
@@ -62,7 +62,7 @@ app.get("/article/:id", (req, res) => {
       }
     });
   });
-app.get("/category/:id", (req, res) => {
+app.get("/category/article/:id", (req, res) => {
   const userId=req.params.id
     db.query("SELECT * FROM category WHERE id=?",[userId], (err, result) => {
       if (err) {
@@ -113,19 +113,12 @@ app.get("/ac/a/:id", (req, res) => {
           });
         });
     
-      app.get("/a/ia/:id", (req, res) => {
+      app.get("/article/ingredients/:id", (req, res) => {
         const cpId=req.params.id;
           db.query(`
-          SELECT 
-          a.name AS article, 
-          i.name AS ingredient, 
-          al.name AS allergy
-          FROM article AS a
-          JOIN article_ingredient ai ON a.id = ai.id_article
-          JOIN ingredients i ON i.id = ai.id_ingredient
-          JOIN ingredients_allergies ia ON i.id = ia.id_ingredient
-          JOIN allergies al ON al.id = ia.id_allergie
-          where a.id=?`,[cpId], (err, result) => {
+          SELECT i.name from ingredients as i
+          join article_ingredient as ai on i.id=ai.id_ingredient
+          where ai.id_article=?`,[cpId], (err, result) => {
             if (err) {
               res.status(500).json({ error: err.message });
             } else {

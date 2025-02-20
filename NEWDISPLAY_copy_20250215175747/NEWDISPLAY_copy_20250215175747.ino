@@ -47,7 +47,7 @@ int x, y, z;
 void fetchJson() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-     char* serverUrl = "http://192.168.47.250:5000/ac/a/1";
+     char* serverUrl = "http://192.168.0.120:5000/ac/a/1";
     http.begin(serverUrl);
     int httpResponseCode = http.GET();
 
@@ -164,7 +164,7 @@ void loop() {
 
     printTouchToSerial(x, y, z);
     printTouchToDisplay(x, y, z);
-
+    tft.
     delay(100);
   }
 }

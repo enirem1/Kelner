@@ -1,9 +1,10 @@
 
-
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
-
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 TFT_eSPI tft = TFT_eSPI();
 
 // Touchscreen pins
@@ -18,11 +19,19 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
-#define FONT_SIZE 2
+int FONT_SIZE=2;
 
 // Touchscreen coordinates: (x, y) and pressure (z)
 int x, y, z;
-
+struct Dish{
+  int id;
+  char* name;
+  float price;
+  int weight;
+  char* ingrdients[20];
+  char* allergies[20];
+};
+Dish a={1,"Margarita",10.50,600,{"Cheese", "Tomato", "Dough", "Pepperoni", "Oregano"},{"Gluten","Dairy"}};
 // Print Touchscreen info about X, Y and Pressure (Z) on the Serial Monitor
 void printTouchToSerial(int touchX, int touchY, int touchZ) {
   Serial.print("X = ");
@@ -47,15 +56,15 @@ void DishBrowse(int touchX, int touchY, int touchZ) {
   tft.fillTriangle(138,30,182,30,160,8,TFT_WHITE);//up arrow
   tft.drawRect(46, 200, 227, 35, TFT_WHITE);
   tft.fillTriangle(138,205,182,205,160,227,TFT_WHITE);//down arrow
+  
+  tft.drawString(a.name, 51, 57,4);
+  tft.setFreeFont();
+  tft.drawFloat(a.price,2,227, 56,2);
+  tft.drawString("1234567890123456789012345678",50, 78,2);// 28 simbols per row for ingredients/allergies
   int centerX = SCREEN_WIDTH / 2;
   int textY = 80;
+  String tempText;
  
-  String tempText = "X = " + String(touchX);
-  tft.drawCentreString(tempText, centerX, textY, FONT_SIZE);
-
-  textY += 20;
-  tempText = "Y = " + String(touchY);
-  tft.drawCentreString(tempText, centerX, textY, FONT_SIZE);
 
   textY += 20;
   if(touchX>46&&touchX<273&&touchY<35){
