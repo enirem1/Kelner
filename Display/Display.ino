@@ -42,7 +42,7 @@ void printTouchToSerial(int touchX, int touchY, int touchZ) {
   Serial.print(touchZ);
   Serial.println();
 }
-
+int DishId;
 // Print Touchscreen info about X, Y and Pressure (Z) on the TFT Display
 void DishBrowse(int touchX, int touchY, int touchZ) {
   // Clear TFT screen
@@ -56,30 +56,31 @@ void DishBrowse(int touchX, int touchY, int touchZ) {
   tft.fillTriangle(138,30,182,30,160,8,TFT_WHITE);//up arrow
   tft.drawRect(46, 200, 227, 35, TFT_WHITE);
   tft.fillTriangle(138,205,182,205,160,227,TFT_WHITE);//down arrow
-  
+  tft.drawString("Family Pizza",51,37,2);
   tft.drawString(a.name, 51, 57,4);
   tft.setFreeFont();
   tft.drawFloat(a.price,2,227, 56,2);
-  tft.drawString("1234567890123456789012345678",50, 78,2);// 28 simbols per row for ingredients/allergies
+    tft.drawNumber(a.weight,227, 37,2);
+  tft.drawString("123456789012345678901234567",50, 85,2);// 27 simbols per row for ingredients/allergies
   int centerX = SCREEN_WIDTH / 2;
   int textY = 80;
   String tempText;
- 
-
+  DishId=1;
+  
   textY += 20;
-  if(touchX>46&&touchX<273&&touchY<35){
+  if(touchX>46&&touchX<273&&touchY<35){//up button
     tempText="Go up";
     tft.drawCentreString(tempText,centerX,textY,FONT_SIZE);
   }
-  if(touchX<45){
+  if(touchX<45){//back button
     tempText="Go back";
     tft.drawCentreString(tempText,centerX,textY,FONT_SIZE);
   }
-  if(touchX>275){
+  if(touchX>275){//next button
     tempText="Go next";
     tft.drawCentreString(tempText,centerX,textY,FONT_SIZE);
   }
-  if(touchX>46&&touchX<273&&touchY>200){
+  if(touchX>46&&touchX<273&&touchY>200){//down button
     tempText="Go down";
     tft.drawCentreString(tempText,centerX,textY,FONT_SIZE);
   }
