@@ -1,76 +1,234 @@
-#include <WiFi.h>         // For ESP32 (use <ESP8266WiFi.h> for ESP8266)
+#include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-const char* ssid = "enirem";        // Replace with your Wi-Fi SSID
-const char* password = "12345678"; // Replace with your Wi-Fi Password
+// WiFi credentials
+const char* ssid = "enirem";
+const char* password = "12345678";
 
-const char* serverUrlMenu = "http://192.168.238.250:5000/a/";  // Replace with your Menu API URL
-const char* serverUrlIngredients = "http://192.168.238.250:5000/article/ingredients/";  // Replace with your Ingredients API URL
+// API endpoint
+const char* baseAPI = "http://192.168.117.250:5000";  // Use a base URL for efficiency
+
+struct Dish {
+  int Id;
+  String Name;
+  float Price;
+  int Weight;
+  String Ingredients[20];
+  String Allergies[20];
+};
 
 void setup() {
-    Serial.begin(115200);
-    WiFi.begin(ssid, password);
+  Serial.begin(115200);
 
-    Serial.print("Connecting to Wi-Fi");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nConnected!");
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("\nConnected to WiFi");
 
-    fetchJsonData(serverUrlMenu, "menu");
-    fetchJsonData(serverUrlIngredients, "ingredients");
-}
-
-void fetchJsonData(const char* url, const char* dataType) {
-    if (WiFi.status() == WL_CONNECTED) {
-        HTTPClient http;
-        http.begin(url);
-
-        int httpCode = http.GET();  // Send GET request
-        if (httpCode > 0) { 
-            String payload = http.getString();
-            Serial.println("\nReceived JSON from: " + String(url));
-            Serial.println(payload);
-
-            // Parse JSON
-            StaticJsonDocument<512> doc;
-            DeserializationError error = deserializeJson(doc, payload);
-
-            if (!error) {
-                JsonArray dataArray = doc[dataType]; // Get menu or ingredients
-
-                Serial.println("\n" + String(dataType) + ":");
-                for (JsonObject item : dataArray) {
-                    if (strcmp(dataType, "menu") == 0) {
-                        Serial.print("ID: ");
-                        Serial.println(item["id"].as<int>());
-                        Serial.print("Name: ");
-                        Serial.println(item["name"].as<String>());
-                        Serial.print("Price: ");
-                        Serial.println(item["price"].as<String>());
-                        Serial.print("Weight: ");
-                        Serial.println(item["weight"].as<int>());
-                    } else if (strcmp(dataType, "ingredients") == 0) {
-                        Serial.print("Ingredient: ");
-                        Serial.println(item["name"].as<String>());
-                    }
-                    Serial.println();
-                }
-            } else {
-                Serial.println("JSON parsing failed!");
-            }
-        } else {
-            Serial.print("HTTP request failed, error: ");
-            Serial.println(http.errorToString(httpCode));
-        }
-        http.end();
-    } else {
-        Serial.println("Wi-Fi Disconnected!");
-    }
+  // Fetch dishes by category
+  fetchByCategory(4);
 }
 
 void loop() {
-    // Optionally, call fetchJsonData() periodically
+  // No repeated calls needed for now
+}
+
+void fetchOneDish(int dishId) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Disconnected");
+    return;
+  }
+
+  HTTPClient http;
+  String url = String(baseAPI) + "/article/" + String(dishId);
+  http.begin(url);
+
+  int httpResponseCode = http.GET();
+  if (httpResponseCode == 200) {
+    String payload = http.getString();
+    Serial.println("API Response: " + payload);
+
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, payload);
+    if (error) {
+      Serial.print("Deserialization failed: ");
+      Serial.println(error.f_str());
+      return;
+    }
+
+    Dish meal;
+    meal.Id = doc["id"].as<int>();
+    meal.Name = doc["name"].as<String>();
+    meal.Price = doc["price"].as<float>();
+    meal.Weight = doc["weight"].as<int>();
+
+    Serial.println("Extracted Data:");
+    Serial.print("ID: ");
+    Serial.println(meal.Id);
+    Serial.print("Name: ");
+    Serial.println(meal.Name);
+    Serial.print("Price: ");
+    Serial.println(meal.Price);
+    Serial.print("Weight: ");
+    Serial.println(meal.Weight);
+  } else {
+    Serial.print("HTTP Request failed, error code: ");
+    Serial.println(httpResponseCode);
+  }
+
+  http.end();
+}
+
+void fetchByCategory(int category) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Disconnected");
+    return;
+  }
+
+  HTTPClient http;
+  String url = String(baseAPI) + "/category/articles/" + String(category);
+  http.begin(url);
+
+  int httpResponseCode = http.GET();
+  if (httpResponseCode != 200) {
+    Serial.print("HTTP Request failed, error code: ");
+    Serial.println(httpResponseCode);
+    http.end();
+    return;
+  }
+
+  String payload = http.getString();
+  Serial.println("API Response: " + payload);
+  http.end();
+
+  DynamicJsonDocument doc(4096);
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    Serial.print("Deserialization failed: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  JsonArray meals = doc.as<JsonArray>();
+  int mealCount = meals.size();
+  Dish Dishes[mealCount];
+
+    for (int i = 0; i < mealCount; i++) {
+      JsonObject meal = meals[i];
+      Dishes[i].Id = meal["id"].as<int>();
+      Dishes[i].Name = meal["name"].as<String>();
+      Dishes[i].Price = meal["price"].as<float>();
+    Dishes[i].Weight = meal["weight"].as<int>();
+  }
+
+  // Fetch ingredients for each dish
+  for (int j = 0; j < mealCount; j++) {
+    fetchIngredients(Dishes[j]);
+    fetchAllergies(Dishes[j]);
+  }
+
+  // Print extracted values
+  for (int j = 0; j < mealCount; j++) {
+    Serial.println("Extracted Data:");
+    Serial.print("ID: ");
+    Serial.println(Dishes[j].Id);
+    Serial.print("Name: ");
+    Serial.println(Dishes[j].Name);
+    Serial.print("Price: ");
+    Serial.println(Dishes[j].Price);
+    Serial.print("Weight: ");
+    Serial.println(Dishes[j].Weight);
+    Serial.print("Ingredients: ");
+    Serial.print(Dishes[j].Ingredients[0]);
+    for (int k = 1; k < 20 && Dishes[j].Ingredients[k] != ""; k++) {
+      Serial.print(", ");
+      Serial.print(Dishes[j].Ingredients[k]);
+    }
+    Serial.println("");
+    Serial.print("Allergies: ");
+    Serial.print(Dishes[j].Allergies[0]);
+    for (int k = 1; k < 20 && Dishes[j].Allergies[k] != ""; k++) {
+      
+      Serial.print(", ");
+      Serial.println(Dishes[j].Allergies[k]);
+    }
+    Serial.println("\n--------------------------");
+  }
+}
+
+void fetchIngredients(Dish& dish) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Disconnected");
+    return;
+  }
+
+  HTTPClient http;
+  String url = String(baseAPI) + "/article/ingredients/" + String(dish.Id);
+  http.begin(url);
+
+  int httpResponseCode = http.GET();
+  if (httpResponseCode != 200) {
+    Serial.print("HTTP Request failed, error code: ");
+    Serial.println(httpResponseCode);
+    http.end();
+    return;
+  }
+
+  String payload = http.getString();
+  Serial.println("Ingredients API Response: " + payload);
+  http.end();
+
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    Serial.print("Deserialization failed: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  JsonArray ingredients = doc.as<JsonArray>();
+  for (int i = 0; i < ingredients.size() && i < 20; i++) {
+    dish.Ingredients[i] = ingredients[i]["name"].as<String>();
+  }
+}
+
+void fetchAllergies(Dish& dish) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Disconnected");
+    return;
+  }
+
+  HTTPClient http;
+  String url = String(baseAPI) + "/article/allergies/" + String(dish.Id);
+  http.begin(url);
+
+  int httpResponseCode = http.GET();
+  if (httpResponseCode != 200) {
+    Serial.print("HTTP Request failed, error code: ");
+    Serial.println(httpResponseCode);
+    http.end();
+    return;
+  }
+
+  String payload = http.getString();
+  Serial.println("Ingredients API Response: " + payload);
+  http.end();
+
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    Serial.print("Deserialization failed: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  JsonArray allergies = doc.as<JsonArray>();
+  for (int i = 0; i < allergies.size() && i < 20; i++) {
+    dish.Allergies[i] = allergies[i]["name"].as<String>();
+  }
 }
