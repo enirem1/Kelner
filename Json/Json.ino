@@ -7,8 +7,11 @@ const char* ssid = "enirem";
 const char* password = "12345678";
 
 // API endpoint
-const char* baseAPI = "http://192.168.117.250:5000";  // Use a base URL for efficiency
-
+const char* baseAPI = "http://192.168.32.250:5000";  // Use a base URL for efficiency
+struct Category{
+  int Id;
+  String Name;
+}
 struct Dish {
   int Id;
   String Name;
@@ -84,6 +87,9 @@ void fetchOneDish(int dishId) {
   http.end();
 }
 
+void fetchCategory(){
+
+}
 void fetchByCategory(int category) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi Disconnected");

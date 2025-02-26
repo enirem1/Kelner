@@ -17,7 +17,8 @@ http://localhost:5000/article/        --select all
 http://localhost:5000/article/1       --select by id
 http://localhost:5000/article/ingredients/1    --select ingredients of article by id 
 http://localhost:5000/article/allergies/2   --select article allergies by article id 
-http://localhost:5000/category/article/1
+http://localhost:5000/category
+http://localhost:5000/Orders                --send order
 
 */
 // MySQL Database Connection
@@ -66,6 +67,16 @@ app.get("/article/:id", (req, res) => {
 app.get("/article/", (req, res) => {
 
   db.query("SELECT * FROM article ", (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json(result);
+    }
+  });
+});
+app.get("/category", (req, res) => {
+
+  db.query("SELECT name FROM category ", (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
     } else {
@@ -151,12 +162,11 @@ app.get("/article/allergies/:id", (req, res) => {
   const cpId = req.params.id;
   db.query(`
          SELECT  al.name from article as ar
-left join article_ingredient as ai on ai.id_article=ar.id
-left join ingredients as i on i.id=ai.id_ingredient
-
-left join ingredients_allergies as air on air.id_ingredient=i.id
-left join allergies as al on al.id=air.id_allergie
-where ar.id=2 and al.name IS NOT NULL`, [cpId], (err, result) => {
+          left join article_ingredient as ai on ai.id_article=ar.id
+          left join ingredients as i on i.id=ai.id_ingredient  
+          left join ingredients_allergies as air on air.id_ingredient=i.id
+          left join allergies as al on al.id=air.id_allergie
+          where ar.id=2 and al.name IS NOT NULL`, [cpId], (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
     } else {
@@ -165,7 +175,22 @@ where ar.id=2 and al.name IS NOT NULL`, [cpId], (err, result) => {
   });
 });
 
+app.use(express.json());
 
+// Route to insert a new user
+app.post("/Orders", (req, res) => {
+  const { id_table, id_article } = req.body; // Get data from request body
+
+  const sql = "INSERT INTO orders (id_table, id_article) VALUES (?, ?, ?)";
+  const values = [id_table, id_article];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ message: "Order added"});
+  });
+});
 
 // Add a new user
 
