@@ -5,13 +5,14 @@
 // WiFi credentials
 const char* ssid = "enirem";
 const char* password = "12345678";
-
-// API endpoint
-const char* baseAPI = "http://192.168.32.250:5000";  // Use a base URL for efficiency
+int CatId=0;
+Dish selectedDish;
+int Stage=0;
+const char* baseAPI = "http://192.168.206.250:5000";  // Use a base URL for efficiency
 struct Category{
   int Id;
   String Name;
-}
+};
 struct Dish {
   int Id;
   String Name;
@@ -32,7 +33,7 @@ void setup() {
     delay(1000);
   }
   Serial.println("\nConnected to WiFi");
-
+  fetchCategory();
   // Fetch dishes by category
   fetchByCategory(4);
 }
@@ -88,7 +89,58 @@ void fetchOneDish(int dishId) {
 }
 
 void fetchCategory(){
+ if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Disconnected");
+    return;
+  }
 
+  HTTPClient http;
+  String url = String(baseAPI) + "/category";
+  http.begin(url);
+
+  int httpResponseCode = http.GET();
+  if (httpResponseCode != 200) {
+    Serial.print("HTTP Request failed, error code: ");
+    Serial.println(httpResponseCode);
+    http.end();
+    return;
+  }
+
+  String payload = http.getString();
+  Serial.println("API Response: " + payload);
+  http.end();
+
+  DynamicJsonDocument doc(4096);
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    Serial.print("Deserialization failed: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  JsonArray categories = doc.as<JsonArray>();
+  int catCount = categories.size();
+  Category cats[catCount];
+
+    for (int i = 0; i < catCount; i++) {
+      JsonObject category = categories[i];
+      cats[i].Id=category["id"].as<int>();
+      cats[i].Name=category["name"].as<String>();
+  }
+
+  // Fetch ingredients for each dish
+  
+
+  // Print extracted values
+  for (int j = 0; j < catCount; j++) {
+    Serial.println("Extracted Data:");
+    Serial.print("ID: ");
+    Serial.println(cats[j].Id);
+    Serial.print("Name: ");
+    Serial.println(cats[j].Name);
+    
+    Serial.println("\n*--------------------------*");
+  }
 }
 void fetchByCategory(int category) {
   if (WiFi.status() != WL_CONNECTED) {

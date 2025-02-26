@@ -76,7 +76,7 @@ app.get("/article/", (req, res) => {
 });
 app.get("/category", (req, res) => {
 
-  db.query("SELECT name FROM category ", (err, result) => {
+  db.query("SELECT id,name FROM category ", (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
     } else {
