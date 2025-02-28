@@ -6,9 +6,9 @@
 const char* ssid = "enirem";
 const char* password = "12345678";
 int CatId=0;
-Dish selectedDish;
+
 int Stage=0;
-const char* baseAPI = "http://192.168.206.250:5000";  // Use a base URL for efficiency
+const char* baseAPI = "http://192.168.142.250:5000";  // Use a base URL for efficiency
 struct Category{
   int Id;
   String Name;
@@ -21,7 +21,7 @@ struct Dish {
   String Ingredients[20];
   String Allergies[20];
 };
-
+Dish selectedDish;
 void setup() {
   Serial.begin(115200);
 
@@ -87,6 +87,7 @@ void fetchOneDish(int dishId) {
 
   http.end();
 }
+
 
 void fetchCategory(){
  if (WiFi.status() != WL_CONNECTED) {

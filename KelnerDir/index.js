@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 /*
 http://localhost:8080/
-http://localhost:5000/ac        --select article and category 
+http://localhost:5000/category/articles/1     --select article and category 
 http://localhost:5000/ac/a/1    --select category and article by article id  
 http://localhost:5000/ac/c/1    --select category and article by category id
 http://localhost:5000/ac/cp/1   --select category and article by category paernt_id  
@@ -126,7 +126,7 @@ app.get("/ac/c/:id", (req, res) => {
 });
 app.get("/category/articles/:id", (req, res) => {
   const aId = req.params.id;
-  db.query("SELECT article.id,article.name,article.price,article.weight from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE category.id=?", [aId], (err, result) => {
+  db.query("SELECT article.id,article.name,article.price,article.weight from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE category.id=? or parent_id=?", [aId, aId], (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
     } else {
@@ -179,10 +179,10 @@ app.use(express.json());
 
 // Route to insert a new user
 app.post("/Orders", (req, res) => {
-  const { id_table, id_article } = req.body; // Get data from request body
+  const { id_table, id_article,status } = req.body; // Get data from request body
 
-  const sql = "INSERT INTO orders (id_table, id_article) VALUES (?, ?, ?)";
-  const values = [id_table, id_article];
+  const sql = "INSERT INTO orders (id_table, id_article,status) VALUES (?, ?, ?)";
+  const values = [id_table, id_article,status];
 
   db.query(sql, values, (err, result) => {
     if (err) {
