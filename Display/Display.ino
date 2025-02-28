@@ -27,15 +27,13 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 int FONT_SIZE = 1;
 
 // Touchscreen coordinates: (x, y) and pressure (z)
-int x, y, z;
-// WiFi credentials
 const char* ssid = "enirem";
 const char* password = "12345678";
-
+float total;
 byte showCat;
 byte showDish;
 byte stage;
-const char* baseAPI = "http://192.168.142.250:5000";  // Use a base URL for efficiency
+const char* baseAPI = "http://192.168.57.250:5000";  // Use a base URL for efficiency
 struct Category {
   int Id;
   String Name;
@@ -51,7 +49,6 @@ struct Dish {
 int selected;
 Category selectedCategory;
 Dish selectedDish;
-Dish a = { 1, "Pepperoni", 10.50, 600, { "Cheese", "Tomato", "Dough", "Pepperoni", "Oregano", "Mushrooms", "Olives", "Peppers", "Onions", "Basil" }, { "Gluten", "Dairy", "Soy", "Nuts", "Eggs" } };
 
 // Function to display ingredients in a row with wrapping
 void drawRowText(String words[], int count, int startX, int startY, int textSize) {
@@ -80,42 +77,7 @@ void drawRowText(String words[], int count, int startX, int startY, int textSize
 }
 
 
-// Display Dish Information
-void DishBrowse(int touchX, int touchY) {
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  // Navigation Buttons
-  tft.drawRect(0, 0, 45, 235, TFT_WHITE);
-  tft.fillTriangle(30, 98, 30, 143, 8, 120, TFT_WHITE);
-  tft.drawRect(275, 0, 45, 235, TFT_WHITE);
-  tft.fillTriangle(288, 98, 288, 143, 310, 120, TFT_WHITE);
-  tft.drawRect(46, 0, 227, 35, TFT_WHITE);
-  tft.fillTriangle(138, 30, 182, 30, 160, 8, TFT_WHITE);
-  tft.drawRect(46, 200, 227, 35, TFT_WHITE);
-  tft.fillTriangle(138, 205, 182, 205, 160, 227, TFT_WHITE);
-
-  // Dish Name
-  tft.drawString("Family Pizza", 51, 37, 2);
-  tft.drawString(a.Name, 51, 57, 4);
-  tft.drawFloat(a.Price, 2, 227, 56, 2);
-
-  tft.drawNumber(a.Weight, 227, 37, 2);
-
-  // Display Ingredients in a Row
-  tft.setCursor(50, 85);
-  tft.print("Ingredients:");
-
-  if (touchX > 46 && touchX < 273 && touchY > 200) {  //down button
-  }
-  if (touchX > 275) {
-    showDish = 0;  //next button
-  }
-  if (touchX < 45) {  //back button
-  }
-  if (touchX > 46 && touchX < 273 && touchY < 35) {  //up button
-  }
-}
 void initUI() {
 
   tft.fillScreen(TFT_BLACK);
@@ -192,12 +154,15 @@ void fetchCategory() {
     cats[i].Name = category["name"].as<String>();
   }
   int textX;
-  // Fetch ingredients for each dish
+
   if (showCat == 0) {
     initUI();
-    textX = 160 - cats[0].Name.length() * 7;
+    textX = 160 - tft.textWidth(cats[0].Name);
     tft.drawString("Categories", 95, 40, 4);
     tft.drawString(cats[0].Name, textX, 90, 4);
+    String temp = "Totla:" + String(total, 2);
+    textX = 160 - tft.textWidth(temp);
+    tft.drawString(temp, textX, 130, 4);
     showCat = 1;
   }  // Print extracted values
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
@@ -226,9 +191,13 @@ void fetchCategory() {
       selected = 0;
       stage = 1;
     }
-    textX = 160 - cats[selected].Name.length() * 7;
+    textX = 160 - tft.textWidth(cats[selected].Name);
     tft.drawString("Categories", 95, 40, 4);
     tft.drawString(cats[selected].Name, textX, 90, 4);
+    textX = 160 - tft.textWidth(cats[selected].Name);
+    String temp = "Totla:" + String(total, 2);
+    textX = 160 - tft.textWidth(temp);
+    tft.drawString(temp, textX, 130, 4);
   }
 }
 void fetchByCategory(int category) {
@@ -282,7 +251,7 @@ void fetchByCategory(int category) {
 
   // Print extracted values
 
-  
+
   if (mealCount > 0) {
     if (showDish == 0) {
 
@@ -311,7 +280,7 @@ void fetchByCategory(int category) {
       tft.setCursor(50, 130);
       tft.print("Allergens:");
       drawRowText(Dishes[0].Allergies, 5, TEXT_MARGIN, 145, 1);
-      
+
       showDish = 1;
     }
     if (touchscreen.tirqTouched() && touchscreen.touched()) {
@@ -326,7 +295,6 @@ void fetchByCategory(int category) {
       }
       if (touchX > 46 && touchX < 273 && touchY > 200) {  //down button
         selected = selected + 1;
-       
       }
 
 
@@ -372,12 +340,10 @@ void fetchByCategory(int category) {
       tft.setCursor(50, 130);
       tft.print("Allergens:");
       drawRowText(Dishes[selected].Allergies, 5, TEXT_MARGIN, 145, 1);
-  
     }
   } else {
     stage = 0;
   }
-
 }
 
 void fetchIngredients(Dish& dish) {
@@ -452,32 +418,32 @@ void fetchAllergies(Dish& dish) {
   }
 }
 void SendOrder() {
-  
-  if(selected>-1){
+
+  if (selected > -1) {
     initUI();
-  tft.setTextSize(2);
-  tft.drawRect(0, 0, 45, 235, TFT_WHITE);
-  tft.fillTriangle(30, 98, 30, 143, 8, 120, TFT_WHITE);
-  tft.drawRect(275, 0, 45, 235, TFT_WHITE);
-  tft.fillTriangle(288, 98, 288, 143, 310, 120, TFT_WHITE);
-  String temp = "Do you want ";
-  int cursorX = 160-tft.textWidth(temp) / 2;
-  tft.setCursor(cursorX, 60);
-  tft.print(temp);
-   temp = "to order: ";
-   cursorX = 160-tft.textWidth(temp) / 2;
-  tft.setCursor(cursorX, 80);
-  tft.print(temp);
-  cursorX = 160-tft.textWidth(selectedDish.Name) / 2;
-  tft.setCursor(cursorX, 100);
-  tft.print(selectedDish.Name);
-  temp = "For:" + String(selectedDish.Price, 2) + "lv.";
-  cursorX = 160-tft.textWidth(selectedDish.Name) / 2;
-  tft.setCursor(cursorX, 120);
-  tft.print(temp);
-  tft.setTextSize(1);
-  
-  selected=-1;
+    tft.setTextSize(2);
+    tft.drawRect(0, 0, 45, 235, TFT_WHITE);
+    tft.fillTriangle(30, 98, 30, 143, 8, 120, TFT_WHITE);
+    tft.drawRect(275, 0, 45, 235, TFT_WHITE);
+    tft.fillTriangle(288, 98, 288, 143, 310, 120, TFT_WHITE);
+    String temp = "Do you want ";
+    int cursorX = 160 - tft.textWidth(temp) / 2;
+    tft.setCursor(cursorX, 60);
+    tft.print(temp);
+    temp = "to order: ";
+    cursorX = 160 - tft.textWidth(temp) / 2;
+    tft.setCursor(cursorX, 80);
+    tft.print(temp);
+    cursorX = 160 - tft.textWidth(selectedDish.Name) / 2;
+    tft.setCursor(cursorX, 100);
+    tft.print(selectedDish.Name);
+    temp = "For:" + String(selectedDish.Price, 2) + "lv.";
+    cursorX = 160 - tft.textWidth(selectedDish.Name) / 2;
+    tft.setCursor(cursorX, 120);
+    tft.print(temp);
+    tft.setTextSize(1);
+
+    selected = -1;
   }
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
     TS_Point p = touchscreen.getPoint();
@@ -485,13 +451,14 @@ void SendOrder() {
     int touchY = map(p.y, 240, 3800, 1, SCREEN_HEIGHT);
     if (touchX < 45) {
       stage = 0;
-      selected=0;
+      selected = 0;
       showCat = 0;
       showDish = 0;  //back button
     }
     if (touchX > 275) {
       if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
+        total += selectedDish.Price;
         String url = String(baseAPI) + "/Orders";
         // Start HTTP POST request
         http.begin(url);
@@ -501,7 +468,7 @@ void SendOrder() {
         DynamicJsonDocument doc(1024);
         doc["id_table"] = table_id;
         doc["id_article"] = selectedDish.Id;
-        doc["status"]=0;
+        doc["status"] = 0;
 
 
         String jsonData;
@@ -525,8 +492,8 @@ void SendOrder() {
         http.end();
         stage = 0;
         showCat = 0;
-        showDish = 0; 
-        selected=0;
+        showDish = 0;
+        selected = 0;
       }
     }
   }
@@ -543,9 +510,8 @@ void loop() {
     fetchByCategory(selectedCategory.Id);
     delay(100);
   }
-  while(stage==2){
+  while (stage == 2) {
     SendOrder();
     delay(100);
   }
-
 }
