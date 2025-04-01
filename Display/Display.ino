@@ -33,7 +33,7 @@ float total;
 byte showCat;
 byte showDish;
 byte stage;
-const char* baseAPI = "http://192.168.57.250:5000";  // Use a base URL for efficiency
+const char* baseAPI = "http://192.168.165.250:5000";  // Use a base URL for efficiency
 struct Category {
   int Id;
   String Name;
@@ -160,7 +160,7 @@ void fetchCategory() {
     textX = 160 - tft.textWidth(cats[0].Name);
     tft.drawString("Categories", 95, 40, 4);
     tft.drawString(cats[0].Name, textX, 90, 4);
-    String temp = "Totla:" + String(total, 2);
+    String temp = "Total:" + String(total, 2);
     textX = 160 - tft.textWidth(temp);
     tft.drawString(temp, textX, 130, 4);
     showCat = 1;
@@ -195,9 +195,10 @@ void fetchCategory() {
     tft.drawString("Categories", 95, 40, 4);
     tft.drawString(cats[selected].Name, textX, 90, 4);
     textX = 160 - tft.textWidth(cats[selected].Name);
-    String temp = "Totla:" + String(total, 2);
+    String temp = "Total:" + String(total, 2);
     textX = 160 - tft.textWidth(temp);
     tft.drawString(temp, textX, 130, 4);
+      
   }
 }
 void fetchByCategory(int category) {
@@ -340,6 +341,7 @@ void fetchByCategory(int category) {
       tft.setCursor(50, 130);
       tft.print("Allergens:");
       drawRowText(Dishes[selected].Allergies, 5, TEXT_MARGIN, 145, 1);
+      
     }
   } else {
     stage = 0;
@@ -445,6 +447,7 @@ void SendOrder() {
 
     selected = -1;
   }
+  delay(250);
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
     TS_Point p = touchscreen.getPoint();
     int touchX = map(p.x, 200, 3700, 1, SCREEN_WIDTH);

@@ -8,20 +8,19 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 /*
-http://localhost:8080/
-http://localhost:5000/category/articles/1     --select article and category 
-http://localhost:5000/ac/a/1    --select category and article by article id  
-http://localhost:5000/ac/c/1    --select category and article by category id
-http://localhost:5000/ac/cp/1   --select category and article by category paernt_id  
-http://localhost:5000/article/        --select all
-http://localhost:5000/article/1       --select by id
-http://localhost:5000/article/ingredients/1    --select ingredients of article by id 
-http://localhost:5000/article/allergies/2   --select article allergies by article id 
+
+http://localhost:5000/article/        
+http://localhost:5000/Show/Orders        
+http://localhost:5000/tables/order/        
+http://localhost:5000/article/        
+http://localhost:5000/article/1       
+http://localhost:5000/article/ingredients/1    
+http://localhost:5000/article/allergies/2   
 http://localhost:5000/category
-http://localhost:5000/Orders                --send order
+http://localhost:5000/Orders                
 
 */
-// MySQL Database Connection
+
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -37,21 +36,11 @@ db.connect((err) => {
   }
 });
 
-// Routes
 app.get("/", (req, res) => {
   res.send("Node.js API with WAMP is Running!");
 });
 
-// Get all users
-app.get("/a", (req, res) => {
-  db.query("SELECT * FROM article", (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json(result);
-    }
-  });
-});
+
 
 
 app.get("/article/:id", (req, res) => {
@@ -84,46 +73,7 @@ app.get("/category", (req, res) => {
     }
   });
 });
-app.get("/category/article/:id", (req, res) => {
-  const userId = req.params.id
-  db.query("SELECT * FROM category WHERE id=?", [userId], (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json(result);
-    }
-  });
-});
-app.get("/ac/", (req, res) => {
 
-  db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id ", (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json(result);
-    }
-  });
-});
-app.get("/ac/a/:id", (req, res) => {
-  const aId = req.params.id;
-  db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE article.id=?", [aId], (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json(result);
-    }
-  });
-});
-app.get("/ac/c/:id", (req, res) => {
-  const aId = req.params.id;
-  db.query("SELECT article.name as article,category.name as category from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE category.id=?", [aId], (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json(result);
-    }
-  });
-});
 app.get("/category/articles/:id", (req, res) => {
   const aId = req.params.id;
   db.query("SELECT article.id,article.name,article.price,article.weight from article  join article_category on article.id=article_category.id_article join category on article_category.id_category=category.id WHERE category.id=? or parent_id=?", [aId, aId], (err, result) => {
@@ -177,9 +127,8 @@ app.get("/article/allergies/:id", (req, res) => {
 
 app.use(express.json());
 
-// Route to insert a new user
 app.post("/Orders", (req, res) => {
-  const { id_table, id_article,status } = req.body; // Get data from request body
+  const { id_table, id_article,status } = req.body; 
 
   const sql = "INSERT INTO orders (id_table, id_article,status) VALUES (?, ?, ?)";
   const values = [id_table, id_article,status];
@@ -191,13 +140,34 @@ app.post("/Orders", (req, res) => {
     res.status(201).json({ message: "Order added"});
   });
 });
+app.get("/Show/Orders", (req, res) => {
+  const aId = req.params.id;
+  db.query(`SELECT o.Id as OrderID,t.id as TableId,a.name as Name,a.price,a.weight FROM orders as o
+join article as  a on a.id=o.id_article
+LEFT JOIN ttable as t on t.id=o.id_table;`, (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json(result);
+    }
+  });
+});
+app.delete("/tables/order/:id", (req, res) => {
+  const orderId = req.params.id;
+  db.query(`DELETE FROM orders WHERE id =?`, [orderId],(err, result) =>{
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json(result);
+    }
+  });
+});
 
-// Add a new user
 
-// Start Server
+
 const PORT = process.env.PORT || 5000;
 
-const HOST = "0.0.0.0"; // Allow all devices on the network to access
+const HOST = "0.0.0.0"; 
 
 app.listen(PORT, HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}`);
